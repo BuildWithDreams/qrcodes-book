@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 06 · Invoice · Flags are the payment policy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --paper: #f5f5f5; --paper-2: #ececec; --ink: #2d3142; --muted: #4f5d75;
+      --accent: #bf4520; --rule: rgba(45,49,66,0.12);
+      --sans: 'Geist', system-ui, sans-serif; --serif: 'Instrument Serif', serif;
+      --mono: 'Geist Mono', ui-monospace, monospace;
+    }
+    html[data-theme="dark"] {
+      --paper: #12141a; --paper-2: #1b1f27; --ink: #e8e6e0; --muted: #98a0ae;
+      --accent: #e2663c; --rule: rgba(232,230,224,0.13);
+    }
+    .theme-toggle {
+      position: fixed; top: 1rem; right: 1rem; z-index: 30;
+      font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted);
+      background: var(--paper-2); border: 1px solid var(--rule);
+      border-radius: 999px; padding: 0.42rem 0.85rem; cursor: pointer;
+      transition: color 120ms ease, border-color 120ms ease;
+    }
+    .theme-toggle:hover { color: var(--ink); border-color: var(--muted); }
+    html[data-theme="dark"] .scroll [fill="#f5f5f5"] { fill: #12141a; }
+    html[data-theme="dark"] .scroll [fill="#ffffff"] { fill: #1b1f27; }
+    html[data-theme="dark"] .scroll [fill="#2d3142"] { fill: #e8e6e0; }
+    html[data-theme="dark"] .scroll [fill="#4f5d75"] { fill: #98a0ae; }
+    html[data-theme="dark"] .scroll [fill="#5a6580"] { fill: #aab2c0; }
+    html[data-theme="dark"] .scroll [fill="#bf4520"] { fill: #e2663c; }
+    html[data-theme="dark"] .scroll [fill="rgba(45,49,66,0.10)"] { fill: rgba(232,230,224,0.10); }
+    html[data-theme="dark"] .scroll [fill="rgba(79,93,117,0.03)"] { fill: rgba(232,230,224,0.045); }
+    html[data-theme="dark"] .scroll [fill="rgba(191,69,32,0.08)"] { fill: rgba(226,102,60,0.16); }
+    html[data-theme="dark"] .scroll [fill="rgba(191,69,32,0.06)"] { fill: rgba(226,102,60,0.12); }
+    html[data-theme="dark"] .scroll [stroke="#2d3142"] { stroke: #e8e6e0; }
+    html[data-theme="dark"] .scroll [stroke="#4f5d75"] { stroke: #98a0ae; }
+    html[data-theme="dark"] .scroll [stroke="#bf4520"] { stroke: #e2663c; }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.20)"] { stroke: rgba(232,230,224,0.26); }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.18)"] { stroke: rgba(232,230,224,0.24); }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.12)"] { stroke: rgba(232,230,224,0.17); }
+    html[data-theme="dark"] .scroll svg { background: transparent; }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink);
+            padding: 4rem 2rem 8rem; line-height: 1.6; }
+    .frame { max-width: 1080px; margin: 0 auto; }
+    .eyebrow { font-family: var(--mono); font-size: 0.66rem; font-weight: 500;
+               letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+               margin-bottom: 0.75rem; }
+    h1 { font-family: var(--serif); font-size: clamp(2rem, 4vw + 0.5rem, 3.1rem);
+          font-weight: 400; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 1.25rem; }
+    .standfirst { font-size: 1.05rem; color: var(--muted); max-width: 62ch; margin-bottom: 3rem; }
+    h2 { font-family: var(--serif); font-size: 1.55rem; font-weight: 400;
+          letter-spacing: -0.01em; margin: 3.25rem 0 0.9rem; }
+    h2 + p, p + p { margin-top: 0.9rem; }
+    p { max-width: 68ch; }
+    ul { max-width: 68ch; margin: 1rem 0 0 1.1rem; }
+    li { margin: 0.35rem 0; }
+    code { font-family: var(--mono); font-size: 0.86em; background: var(--paper-2);
+            padding: 0.1em 0.35em; border-radius: 3px; }
+    pre { font-family: var(--mono); font-size: 0.78rem; line-height: 1.65; background: var(--paper-2);
+           border: 1px solid var(--rule); border-radius: 6px; padding: 1.1rem 1.25rem;
+           overflow-x: auto; margin: 1.25rem 0; color: var(--ink); }
+    table { border-collapse: collapse; width: 100%; margin: 1.25rem 0; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    th { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.12em;
+          text-transform: uppercase; color: var(--muted); font-weight: 500; }
+    td code { font-size: 0.82em; }
+    .scroll { overflow-x: auto; }
+    svg { width: 100%; min-width: 960px; display: block; }
+    .caption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em;
+                color: var(--muted); margin-top: 1rem; }
+    .callout { border-left: 2px solid var(--accent); padding: 0.35rem 0 0.35rem 1.1rem;
+                margin: 1.75rem 0; font-family: var(--serif); font-style: italic;
+                font-size: 1.05rem; color: var(--ink); max-width: 66ch; }
+    .backlink { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em;
+                 text-transform: uppercase; color: var(--muted); text-decoration: none; }
+    .footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
+    .next { font-size: 0.9rem; color: var(--muted); margin-top: 0.5rem; }
+    .next a { color: var(--ink); }
+  </style>
+<script>
+(function () {
+  var root = document.documentElement, KEY = 'qrcodes-theme', saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  root.dataset.theme = saved || 'dark';
+  function paint(btn) {
+    var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    btn.textContent = next === 'light' ? 'Light' : 'Dark';
+    btn.setAttribute('aria-label', 'Switch to ' + next + ' mode');
+    btn.setAttribute('title', 'Switch to ' + next + ' mode');
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'theme-toggle';
+      btn.className = 'theme-toggle';
+      btn.type = 'button';
+      document.body.appendChild(btn);
+    }
+    paint(btn);
+    btn.addEventListener('click', function () {
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem(KEY, root.dataset.theme); } catch (e) {}
+      paint(btn);
+    });
+  });
+})();
+</script>
+</head>
+<body>
+  <div class="frame">
+    <a class="backlink" href="../">&larr; Book map</a>
+    <div style="height:1.75rem"></div>
+    <p class="eyebrow">Chapter 06 · Tabs</p>
+    <h1>Flags are the payment policy</h1>
+    <p class="standfirst">An invoice is not just an amount. It is a set of permissions — any amount, any destination, conversion, routing — encoded as flags.</p>
+    <div class="scroll">
+    <svg viewBox="0 0 1000 368" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="inv-title inv-desc">
+      <title id="inv-title">Invoice — the flags decide what the wallet may do</title>
+      <desc id="inv-desc">An invoice carries amount, destination, currency, expiry, slippage, accepted systems and a tag, with flags that relax or constrain the payment.</desc>
+      <defs>
+        <pattern id="inv-dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.9" fill="rgba(45,49,66,0.10)"/></pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+      <rect width="100%" height="100%" fill="url(#inv-dots)" opacity="0.55"/>
+      <rect x="40" y="66" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="185.0" y="93" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">amount (BN base10)</text>
+      <rect x="356" y="66" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="501.0" y="93" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">destination (PKH or ID)</text>
+      <rect x="672" y="66" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="817.0" y="93" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">requestedCurrencyId</text>
+      <rect x="40" y="128" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="185.0" y="155" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">expiryHeight</text>
+      <rect x="356" y="128" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="501.0" y="155" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">maxEstimatedSlippage</text>
+      <rect x="672" y="128" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="817.0" y="155" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">acceptedSystems[]</text>
+      <rect x="40" y="190" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="185.0" y="217" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">acceptsAnyAmount</text>
+      <rect x="356" y="190" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="501.0" y="217" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">acceptsAnyDestination</text>
+      <rect x="672" y="190" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="817.0" y="217" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">acceptsConversion</text>
+      <rect x="40" y="252" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="185.0" y="279" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">acceptsNonVerusSystems</text>
+      <rect x="356" y="252" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="501.0" y="279" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">expires</text>
+      <rect x="672" y="252" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="817.0" y="279" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">isPreconvert / isTagged</text>
+      <text x="40" y="348" fill="#4f5d75" font-size="8.5" font-family="'Geist',sans-serif" font-style="italic">Destination is omitted entirely when acceptsAnyDestination is on.</text>
+    </svg>
+    </div>
+
+    <p class="caption">FIGURE 6.1 · VerusPayInvoiceDetails, as wired by the form.</p>
+
+    <h2>Signed or not — a real choice</h2>
+    <p>
+      Invoice is the only tab where <code>signed</code> is optional. An unsigned invoice is a payment
+      request anyone can read; a signed one proves which identity asked. The route branches on it and only
+      calls <code>requireString(payload.signingId)</code> when signing.
+    </p>
+
+    <h2>Building the details</h2>
+    <pre>destination = acceptsAnyDestination ? undefined :
+  new TransferDestination({
+    type: destinationType === "id" ? DEST_ID : DEST_PKH,
+    destinationBytes: fromBase58Check(address).hash
+  });
+
+amount = acceptsAnyAmount ? undefined : new BN(amountString, 10);   // must be > 0
+
+details.setFlags({
+  acceptsAnyAmount, acceptsAnyDestination, acceptsConversion,
+  expires, acceptsNonVerusSystems, isTestnet, isPreconvert, isTagged
+});</pre>
+    <p>
+      <code>setFlags()</code> is where most invoice bugs live: the field is set from the flags, not the
+      other way round. If you pass <code>amount</code> but forget <code>acceptsAnyAmount: false</code> (or the
+      reverse), the serialised invoice will disagree with the form.
+    </p>
+
+    <h2>Flag meanings worth internalising</h2>
+    <table>
+      <thead><tr><th>Flag</th><th>What it permits</th></tr></thead>
+      <tbody>
+        <tr><td><code>acceptsAnyAmount</code></td><td>Payer chooses the amount — no amount field serialised</td></tr>
+        <tr><td><code>acceptsAnyDestination</code></td><td>Payer chooses where to send — no destination serialised</td></tr>
+        <tr><td><code>acceptsConversion</code></td><td>Payment may be converted through another currency, bounded by slippage</td></tr>
+        <tr><td><code>acceptsNonVerusSystems</code></td><td>Payment may route through listed PBaaS systems</td></tr>
+        <tr><td><code>expires</code></td><td><code>expiryHeight</code> is enforced</td></tr>
+        <tr><td><code>isPreconvert</code></td><td>Pre-conversion semantics</td></tr>
+        <tr><td><code>isTagged</code></td><td>An invoice tag identifies the payment</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      Two flags are effectively permissions: "any amount" and "any destination". A wallet UI that shows them
+      is telling the user they are handing over choice, not just convenience.
+    </div>
+
+    <h2>Reading the code</h2>
+    <pre>src/routes/requests/invoice.ts
+  buildInvoiceRequest()   # destination, amount, flags, accepted systems
+  generateInvoiceQr()     # signed branch + QR</pre>
+
+    <div class="footer">
+      <a class="backlink" href="../">&larr; Book map</a>
+      <p class="next">Next — <a href="07-app-encryption.html">Chapter 07 · App Encryption</a></p>
+    </div>
+  </div>
+</body>
+</html>

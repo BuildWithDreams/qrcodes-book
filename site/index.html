@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verus Request QR Creator · a book</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --paper: #f5f5f5; --paper-2: #ececec; --ink: #2d3142; --muted: #4f5d75;
+      --accent: #bf4520; --rule: rgba(45,49,66,0.12);
+      --sans: 'Geist', system-ui, sans-serif; --serif: 'Instrument Serif', serif;
+      --mono: 'Geist Mono', ui-monospace, monospace;
+    }
+    html[data-theme="dark"] {
+      --paper: #12141a; --paper-2: #1b1f27; --ink: #e8e6e0; --muted: #98a0ae;
+      --accent: #e2663c; --rule: rgba(232,230,224,0.13);
+    }
+    .theme-toggle {
+      position: fixed; top: 1rem; right: 1rem; z-index: 30;
+      font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted);
+      background: var(--paper-2); border: 1px solid var(--rule);
+      border-radius: 999px; padding: 0.42rem 0.85rem; cursor: pointer;
+      transition: color 120ms ease, border-color 120ms ease;
+    }
+    .theme-toggle:hover { color: var(--ink); border-color: var(--muted); }
+    html[data-theme="dark"] .scroll [fill="#f5f5f5"] { fill: #12141a; }
+    html[data-theme="dark"] .scroll [fill="#ffffff"] { fill: #1b1f27; }
+    html[data-theme="dark"] .scroll [fill="#2d3142"] { fill: #e8e6e0; }
+    html[data-theme="dark"] .scroll [fill="#4f5d75"] { fill: #98a0ae; }
+    html[data-theme="dark"] .scroll [fill="#5a6580"] { fill: #aab2c0; }
+    html[data-theme="dark"] .scroll [fill="#bf4520"] { fill: #e2663c; }
+    html[data-theme="dark"] .scroll [fill="rgba(45,49,66,0.10)"] { fill: rgba(232,230,224,0.10); }
+    html[data-theme="dark"] .scroll [fill="rgba(79,93,117,0.03)"] { fill: rgba(232,230,224,0.045); }
+    html[data-theme="dark"] .scroll [fill="rgba(191,69,32,0.08)"] { fill: rgba(226,102,60,0.16); }
+    html[data-theme="dark"] .scroll [fill="rgba(191,69,32,0.06)"] { fill: rgba(226,102,60,0.12); }
+    html[data-theme="dark"] .scroll [stroke="#2d3142"] { stroke: #e8e6e0; }
+    html[data-theme="dark"] .scroll [stroke="#4f5d75"] { stroke: #98a0ae; }
+    html[data-theme="dark"] .scroll [stroke="#bf4520"] { stroke: #e2663c; }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.20)"] { stroke: rgba(232,230,224,0.26); }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.18)"] { stroke: rgba(232,230,224,0.24); }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.12)"] { stroke: rgba(232,230,224,0.17); }
+    html[data-theme="dark"] .scroll svg { background: transparent; }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink);
+           padding: 4rem 2rem 6rem; line-height: 1.6; }
+    .frame { max-width: 1040px; margin: 0 auto; }
+    .eyebrow { font-family: var(--mono); font-size: 0.66rem; font-weight: 500;
+               letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+               margin-bottom: 0.75rem; }
+    h1 { font-family: var(--serif); font-size: clamp(2.1rem, 4vw + 0.5rem, 3.2rem);
+         font-weight: 400; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 1.1rem; }
+    .standfirst { font-size: 1.02rem; color: var(--muted); max-width: 64ch; margin-bottom: 2.5rem; }
+    .meta { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em;
+            color: var(--muted); margin-bottom: 3rem; }
+    .meta a { color: var(--ink); }
+    h2 { font-family: var(--serif); font-size: 1.4rem; font-weight: 400; margin-bottom: 0.4rem; }
+    .thesis { border-left: 2px solid var(--accent); padding: 0.3rem 0 0.3rem 1.1rem;
+              margin: 0 0 3rem; font-family: var(--serif); font-style: italic; font-size: 1.1rem;
+              max-width: 62ch; }
+    .toc { list-style: none; margin-top: 0.75rem; border-top: 1px solid var(--rule); }
+    .toc li { border-bottom: 1px solid var(--rule); }
+    .toc .row { display: flex; align-items: baseline; gap: 1.25rem; padding: 0.7rem 0;
+                text-decoration: none; color: var(--ink); }
+    .toc a.row:hover .title { text-decoration: underline; text-underline-offset: 3px; }
+    .toc .num { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.14em;
+                color: var(--muted); min-width: 2.2rem; }
+    .toc .title { font-size: 0.95rem; }
+    .toc .state { margin-left: auto; font-family: var(--mono); font-size: 0.62rem;
+                  letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+    .map-table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.88rem; }
+    .map-table th, .map-table td { text-align: left; padding: 0.5rem 0.75rem 0.5rem 0;
+                                   border-bottom: 1px solid var(--rule); vertical-align: top; }
+    .map-table th { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.12em;
+                    text-transform: uppercase; color: var(--muted); font-weight: 500; }
+    code { font-family: var(--mono); font-size: 0.86em; background: var(--paper-2);
+           padding: 0.1em 0.35em; border-radius: 3px; }
+    .section-gap { margin-top: 3.25rem; }
+  </style>
+<script>
+(function () {
+  var root = document.documentElement, KEY = 'qrcodes-theme', saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  root.dataset.theme = saved || 'dark';
+  function paint(btn) {
+    var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    btn.textContent = next === 'light' ? 'Light' : 'Dark';
+    btn.setAttribute('aria-label', 'Switch to ' + next + ' mode');
+    btn.setAttribute('title', 'Switch to ' + next + ' mode');
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'theme-toggle';
+      btn.className = 'theme-toggle';
+      btn.type = 'button';
+      document.body.appendChild(btn);
+    }
+    paint(btn);
+    btn.addEventListener('click', function () {
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem(KEY, root.dataset.theme); } catch (e) {}
+      paint(btn);
+    });
+  });
+})();
+</script>
+</head>
+<body>
+  <div class="frame">
+    <p class="eyebrow">Verus request QR creator · request families in practice</p>
+    <h1>Nine tabs, one pipeline</h1>
+    <p class="standfirst">
+      A reading course through the Verus Request QR Creator: how each request tab builds its VDXF details
+      object, what its flags mean, and how the signed request becomes a QR code a wallet can act on.
+    </p>
+    <p class="meta">
+      Source: <a href="https://github.com/BuildWithDreams/verus-identity-update-qr-creator-main">BuildWithDreams/verus-identity-update-qr-creator-main</a>
+      · Companion to the primitives book
+    </p>
+
+    <p class="thesis">
+      Every tab does the same four things: validate input, build a details object, wrap it in a
+      <code>GenericRequest</code>, sign and encode. What varies is the details class, the flags, and — twice —
+      that more than one detail is needed.
+    </p>
+
+    <h2>Contents</h2>
+    <ol class="toc">
+      <li><a class="row" href="chapters/01-orientation.html"><span class="num">01</span><span class="title">Orientation — a QR factory for Verus requests</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/02-shared-pipeline.html"><span class="num">02</span><span class="title">The shared pipeline — two functions, nine callers</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/03-update-identity.html"><span class="num">03</span><span class="title">Update Identity — the minimal path</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/04-service-signer.html"><span class="num">04</span><span class="title">Service signer — when the service signs, not the user</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/05-authentication.html"><span class="num">05</span><span class="title">Authentication — prove control, constrain the answer</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/06-invoice.html"><span class="num">06</span><span class="title">Invoice — flags are the payment policy</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/07-app-encryption.html"><span class="num">07</span><span class="title">App Encryption — two details, in order</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/08-data-packet.html"><span class="num">08</span><span class="title">Data Packet — six flags, one payload</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/09-user-data.html"><span class="num">09</span><span class="title">User Data — ask for named fields</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/10-attestation.html"><span class="num">10</span><span class="title">Attestation — a data packet with a prologue</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/11-tx-signing.html"><span class="num">11</span><span class="title">Transaction signing — the escape hatch</span><span class="state">Read</span></a></li>
+      <li><a class="row" href="chapters/12-synthesis.html"><span class="num">12</span><span class="title">Synthesis — nine tabs, one recipe</span><span class="state">Read</span></a></li>
+    </ol>
+
+    <div class="section-gap">
+      <h2>Which tab maps to which primitive</h2>
+      <table class="map-table">
+        <thead><tr><th>Tab</th><th>Details class</th><th>Notable additions</th></tr></thead>
+        <tbody>
+          <tr><td>Update Identity</td><td><code>IdentityUpdateRequestDetails</code></td><td>Built from CLI-shaped JSON</td></tr>
+          <tr><td>Service signer</td><td><code>IdentityUpdateRequestDetails</code></td><td>Service key, generated request id, callback + status</td></tr>
+          <tr><td>Authentication</td><td><code>AuthenticationRequestDetails</code></td><td>Recipient constraints (ID / system / parent)</td></tr>
+          <tr><td>Invoice</td><td><code>VerusPayInvoiceDetails</code></td><td>Optional signature; payment-policy flags</td></tr>
+          <tr><td>App Encryption</td><td><code>AppEncryptionRequestDetails</code></td><td>Auth detail first; round-trip verification</td></tr>
+          <tr><td>Data Packet</td><td><code>DataPacketRequestDetails</code></td><td>Six flags; URL descriptor; flag workaround</td></tr>
+          <tr><td>User Data</td><td><code>UserDataRequestDetails</code></td><td>Requested keys; full/partial modes</td></tr>
+          <tr><td>Attestation</td><td><code>DataPacketRequestDetails</code></td><td>signdata → MMRDescriptor + SignatureData → DataDescriptor</td></tr>
+          <tr><td>TX Signing</td><td><code>GeneralTypeOrdinalVDXFObject</code></td><td>JSON payload in a general-purpose object</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-gap">
+      <h2>Read this first if…</h2>
+      <table class="map-table">
+        <thead><tr><th>You want to…</th><th>Go to</th></tr></thead>
+        <tbody>
+          <tr><td>Understand how any tab works</td><td>02, then the tab's chapter</td></tr>
+          <tr><td>Build a new tab</td><td>02 → 03 → 12</td></tr>
+          <tr><td>Debug a QR the wallet rejects</td><td>02 (signing + redirects), then the tab</td></tr>
+          <tr><td>Understand attestations</td><td>10 (and 08 first)</td></tr>
+          <tr><td>Understand the byte-level meaning</td><td>the companion primitives book</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-gap">
+      <h2>Scope note</h2>
+      <p style="max-width:66ch;color:var(--muted);font-size:0.92rem">
+        This book reads the repository as it stands on <code>main</code>, including the transaction-signing
+        tab that post-dates the original tab set. Behaviour described here is the app's wiring of the
+        primitives, not a specification of the wallet's handling — where the two could differ, the text says
+        so.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

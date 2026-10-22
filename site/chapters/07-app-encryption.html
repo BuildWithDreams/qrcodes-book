@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 07 · App Encryption · Two details, in order</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --paper: #f5f5f5; --paper-2: #ececec; --ink: #2d3142; --muted: #4f5d75;
+      --accent: #bf4520; --rule: rgba(45,49,66,0.12);
+      --sans: 'Geist', system-ui, sans-serif; --serif: 'Instrument Serif', serif;
+      --mono: 'Geist Mono', ui-monospace, monospace;
+    }
+    html[data-theme="dark"] {
+      --paper: #12141a; --paper-2: #1b1f27; --ink: #e8e6e0; --muted: #98a0ae;
+      --accent: #e2663c; --rule: rgba(232,230,224,0.13);
+    }
+    .theme-toggle {
+      position: fixed; top: 1rem; right: 1rem; z-index: 30;
+      font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted);
+      background: var(--paper-2); border: 1px solid var(--rule);
+      border-radius: 999px; padding: 0.42rem 0.85rem; cursor: pointer;
+      transition: color 120ms ease, border-color 120ms ease;
+    }
+    .theme-toggle:hover { color: var(--ink); border-color: var(--muted); }
+    html[data-theme="dark"] .scroll [fill="#f5f5f5"] { fill: #12141a; }
+    html[data-theme="dark"] .scroll [fill="#ffffff"] { fill: #1b1f27; }
+    html[data-theme="dark"] .scroll [fill="#2d3142"] { fill: #e8e6e0; }
+    html[data-theme="dark"] .scroll [fill="#4f5d75"] { fill: #98a0ae; }
+    html[data-theme="dark"] .scroll [fill="#5a6580"] { fill: #aab2c0; }
+    html[data-theme="dark"] .scroll [fill="#bf4520"] { fill: #e2663c; }
+    html[data-theme="dark"] .scroll [fill="rgba(45,49,66,0.10)"] { fill: rgba(232,230,224,0.10); }
+    html[data-theme="dark"] .scroll [fill="rgba(79,93,117,0.03)"] { fill: rgba(232,230,224,0.045); }
+    html[data-theme="dark"] .scroll [fill="rgba(191,69,32,0.08)"] { fill: rgba(226,102,60,0.16); }
+    html[data-theme="dark"] .scroll [fill="rgba(191,69,32,0.06)"] { fill: rgba(226,102,60,0.12); }
+    html[data-theme="dark"] .scroll [stroke="#2d3142"] { stroke: #e8e6e0; }
+    html[data-theme="dark"] .scroll [stroke="#4f5d75"] { stroke: #98a0ae; }
+    html[data-theme="dark"] .scroll [stroke="#bf4520"] { stroke: #e2663c; }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.20)"] { stroke: rgba(232,230,224,0.26); }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.18)"] { stroke: rgba(232,230,224,0.24); }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.12)"] { stroke: rgba(232,230,224,0.17); }
+    html[data-theme="dark"] .scroll svg { background: transparent; }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink);
+            padding: 4rem 2rem 8rem; line-height: 1.6; }
+    .frame { max-width: 1080px; margin: 0 auto; }
+    .eyebrow { font-family: var(--mono); font-size: 0.66rem; font-weight: 500;
+               letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+               margin-bottom: 0.75rem; }
+    h1 { font-family: var(--serif); font-size: clamp(2rem, 4vw + 0.5rem, 3.1rem);
+          font-weight: 400; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 1.25rem; }
+    .standfirst { font-size: 1.05rem; color: var(--muted); max-width: 62ch; margin-bottom: 3rem; }
+    h2 { font-family: var(--serif); font-size: 1.55rem; font-weight: 400;
+          letter-spacing: -0.01em; margin: 3.25rem 0 0.9rem; }
+    h2 + p, p + p { margin-top: 0.9rem; }
+    p { max-width: 68ch; }
+    ul { max-width: 68ch; margin: 1rem 0 0 1.1rem; }
+    li { margin: 0.35rem 0; }
+    code { font-family: var(--mono); font-size: 0.86em; background: var(--paper-2);
+            padding: 0.1em 0.35em; border-radius: 3px; }
+    pre { font-family: var(--mono); font-size: 0.78rem; line-height: 1.65; background: var(--paper-2);
+           border: 1px solid var(--rule); border-radius: 6px; padding: 1.1rem 1.25rem;
+           overflow-x: auto; margin: 1.25rem 0; color: var(--ink); }
+    table { border-collapse: collapse; width: 100%; margin: 1.25rem 0; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    th { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.12em;
+          text-transform: uppercase; color: var(--muted); font-weight: 500; }
+    td code { font-size: 0.82em; }
+    .scroll { overflow-x: auto; }
+    svg { width: 100%; min-width: 960px; display: block; }
+    .caption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em;
+                color: var(--muted); margin-top: 1rem; }
+    .callout { border-left: 2px solid var(--accent); padding: 0.35rem 0 0.35rem 1.1rem;
+                margin: 1.75rem 0; font-family: var(--serif); font-style: italic;
+                font-size: 1.05rem; color: var(--ink); max-width: 66ch; }
+    .backlink { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em;
+                 text-transform: uppercase; color: var(--muted); text-decoration: none; }
+    .footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
+    .next { font-size: 0.9rem; color: var(--muted); margin-top: 0.5rem; }
+    .next a { color: var(--ink); }
+  </style>
+<script>
+(function () {
+  var root = document.documentElement, KEY = 'qrcodes-theme', saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  root.dataset.theme = saved || 'dark';
+  function paint(btn) {
+    var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    btn.textContent = next === 'light' ? 'Light' : 'Dark';
+    btn.setAttribute('aria-label', 'Switch to ' + next + ' mode');
+    btn.setAttribute('title', 'Switch to ' + next + ' mode');
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'theme-toggle';
+      btn.className = 'theme-toggle';
+      btn.type = 'button';
+      document.body.appendChild(btn);
+    }
+    paint(btn);
+    btn.addEventListener('click', function () {
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem(KEY, root.dataset.theme); } catch (e) {}
+      paint(btn);
+    });
+  });
+})();
+</script>
+</head>
+<body>
+  <div class="frame">
+    <a class="backlink" href="../">&larr; Book map</a>
+    <div style="height:1.75rem"></div>
+    <p class="eyebrow">Chapter 07 · Tabs</p>
+    <h1>Two details, in order</h1>
+    <p class="standfirst">The only tab that composes an auth detail with its request, and the only one that verifies its own QR by round-tripping the deeplink.</p>
+
+    <div class="scroll">
+    <svg viewBox="0 0 1000 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="enc-title enc-desc">
+      <title id="enc-title">Two details, in order</title>
+      <desc id="enc-desc">The app encryption request carries an authentication detail first, constrained to the chain, followed by the app encryption detail.</desc>
+      <defs>
+        <pattern id="enc-dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.9" fill="rgba(45,49,66,0.10)"/></pattern>
+        <marker id="enc-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#4f5d75"/></marker>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+      <rect width="100%" height="100%" fill="url(#enc-dots)" opacity="0.55"/>
+      <text x="40" y="58" fill="#4f5d75" font-size="8" font-family="'Geist Mono',monospace" letter-spacing="0.14em">DETAILS[0] MUST PRECEDE DETAILS[1]</text>
+
+      <line x1="300" y1="136" x2="400" y2="136" stroke="#4f5d75" stroke-width="1.2" marker-end="url(#enc-arrow)"/>
+      <line x1="700" y1="136" x2="780" y2="136" stroke="#bf4520" stroke-width="1.4" marker-end="url(#enc-arrow)"/>
+
+      <rect x="100" y="104" width="200" height="64" rx="8" fill="#ffffff" stroke="#2d3142"/>
+      <text x="200" y="132" fill="#2d3142" font-size="11.5" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">auth detail</text>
+      <text x="200" y="150" fill="#5a6580" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle">REQUIRED_SYSTEM</text>
+
+      <rect x="400" y="104" width="300" height="64" rx="8" fill="#ffffff" stroke="#2d3142"/>
+      <text x="550" y="132" fill="#2d3142" font-size="11.5" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">app encryption detail</text>
+      <text x="550" y="150" fill="#5a6580" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle">derivation · z-address · return ESK</text>
+
+      <rect x="780" y="104" width="150" height="64" rx="8" fill="rgba(191,69,32,0.08)" stroke="#bf4520"/>
+      <text x="855" y="132" fill="#2d3142" font-size="11.5" font-weight="600" font-family="'Geist',sans-serif" text-anchor="middle">QR</text>
+      <text x="855" y="150" fill="#bf4520" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle">verified first</text>
+
+      <text x="40" y="222" fill="#4f5d75" font-size="8.5" font-family="'Geist',sans-serif" font-style="italic">The wallet enforces recipient constraints in the auth detail before it shows the encryption request.</text>
+    </svg>
+    </div>
+    <p class="caption">FIGURE 7.1 · Ordering is semantic, not cosmetic.</p>
+
+    <h2>The only tab that composes two details</h2>
+    <p>
+      App encryption asks an identity to encrypt data back to a viewing key. The primitive requires an
+      authentication detail alongside it, and the code comments say exactly why: the wallet processes the
+      auth first, so it can enforce a recipient constraint before presenting the encryption request.
+    </p>
+    <pre>details: [
+  new AuthenticationRequestOrdinalVDXFObject({ data: authDetails }),   // REQUIRED_SYSTEM
+  new AppEncryptionRequestOrdinalVDXFObject({ data: appEncryptDetails })
+]</pre>
+    <p>
+      The auth detail's <code>requestID</code> defaults to the signing identity if no request id was given,
+      and its constraint is <code>REQUIRED_SYSTEM</code> pinned to VRSC/VRSCTEST. Reordering the array
+      produces a request that parses but loses the guard.
+    </p>
+
+    <h2>What the encryption detail carries</h2>
+    <table>
+      <thead><tr><th>Field</th><th>Rule in this app</th></tr></thead>
+      <tbody>
+        <tr><td><code>encryptResponseToAddress</code></td><td>Must start with <code>zs1</code>; parsed with <code>SaplingPaymentAddress.fromAddressString</code></td></tr>
+        <tr><td><code>derivationNumber</code></td><td>Non-negative integer, default 0</td></tr>
+        <tr><td><code>derivationID</code></td><td>Optional, i-address or FQN</td></tr>
+        <tr><td><code>requestID</code></td><td>Optional; defaults to the signing identity</td></tr>
+        <tr><td><code>returnEsk</code></td><td>Boolean; asks the wallet to return the extended spending key</td></tr>
+        <tr><td><code>redirects</code></td><td><strong>Required and non-empty</strong> for this tab</td></tr>
+      </tbody>
+    </table>
+    <p>
+      The redirect requirement is deliberate: an encryption response with nowhere to go is a dead request.
+      The route rejects an empty array rather than emitting one.
+    </p>
+
+    <h2>Round-trip verification</h2>
+    <pre>const deeplink = reqToSign.toWalletDeeplinkUri();
+const back = primitives.GenericRequest.fromWalletDeeplinkUri(deeplink);
+const ok = await verusId.verifyGenericRequest(back);
+if (!ok) throw new Error("Failed to verify the generated GenericRequest.");</pre>
+    <p>
+      This is the only tab that verifies its own output before returning it — parse the deeplink back, check
+      the signature against the chain, and fail loudly. It is a pattern worth copying: the QR is only useful
+      if the round trip preserves the signed bytes.
+    </p>
+
+    <div class="callout">
+      <code>returnEsk</code> is a capability upgrade, not a checkbox. A returned extended spending key can
+      derive every message in that derivation chain; decrypting one response cannot.
+    </div>
+
+    <h2>Reading the code</h2>
+    <pre>src/routes/requests/encryption.ts
+  parseOptionalZAddress / parseDerivationNumber / parseOptionalIAddress
+  buildAppEncryptionRequest()   # auth detail + encryption detail
+  generateAppEncryptionQr()     # sign → round-trip → verify → QR</pre>
+
+    <div class="footer">
+      <a class="backlink" href="../">&larr; Book map</a>
+      <p class="next">Next — <a href="08-data-packet.html">Chapter 08 · Data Packet</a></p>
+    </div>
+  </div>
+</body>
+</html>

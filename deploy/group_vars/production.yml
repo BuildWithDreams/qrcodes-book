@@ -1,0 +1,26 @@
+---
+# Production group variables — qrcodes-book (static docs site)
+env: production
+ansible_become: true
+ansible_become_method: sudo
+ansible_user: dream-hermes-agent
+ansible_ssh_common_args: -o StrictHostKeyChecking=no
+ansible_python_interpreter: /usr/bin/python3
+
+# Site
+site_path: "/home/{{ ansible_user }}/qrcodesbook-site"
+site_root: "{{ site_path }}/site"
+site_container_path: "/srv/qrcodesbook-site"
+
+# Every name that serves the site directly
+site_domains:
+  - qrcodesbook.vrsctest.buildwithdreams.com
+
+# Names that 301 to the primary (none yet)
+site_redirects: []
+site_redirect_target: ""
+
+# Caddy
+caddy_path: "/home/{{ ansible_user }}/caddy"
+caddy_container: "mains_blue_caddy-caddy-1"
+caddy_letsencrypt_email: "hermesreport@verus.trading"

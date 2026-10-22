@@ -1,0 +1,70 @@
+# Playbook: 84-site-mount.yml
+# Purpose: Bind-mount the static site root into the shared Caddy container so
+#          Caddy's file_server can serve it. Idempotent.
+# Run with: ansible-playbook -i deploy/inventory.ini deploy/84-site-mount.yml
+---
+- name: Mount the qrcodes-book site root into the Caddy container
+  hosts: production
+  become: false
+  vars_files:
+    - group_vars/production.yml
+
+  tasks:
+    - name: Confirm site root exists on the host
+      ansible.builtin.stat:
+        path: "{{ site_root }}/index.html"
+      register: site_index
+
+    - name: Abort when the site has not been synced yet
+      ansible.builtin.fail:
+        msg: "{{ site_root }}/index.html missing — rsync the site before running this playbook."
+      when: not site_index.stat.exists
+
+    - name: Back up the Caddy compose file
+      ansible.builtin.copy:
+        src: "{{ caddy_path }}/docker-compose.yml"
+        dest: "{{ caddy_path }}/docker-compose.yml.bak-{{ ansible_facts.date_time.iso8601_basic_short }}"
+        remote_src: true
+        mode: "0644"
+
+    - name: Add the site volume mount (insert before the caddy command)
+      ansible.builtin.lineinfile:
+        path: "{{ caddy_path }}/docker-compose.yml"
+        insertbefore: "^    command: caddy run"
+        line: "      - {{ site_root }}:{{ site_container_path }}:ro"
+        state: present
+      register: mount_added
+
+    - name: Recreate Caddy so the new mount takes effect
+      ansible.builtin.shell:
+        cmd: "docker compose up -d caddy"
+        chdir: "{{ caddy_path }}"
+      register: compose_up
+      changed_when: "'Recreated' in compose_up.stdout or 'Started' in compose_up.stdout"
+
+    - name: Check whether the mount is visible inside the container
+      ansible.builtin.shell:
+        cmd: "docker exec {{ caddy_container }} ls {{ site_container_path }}"
+      register: mount_check
+      changed_when: false
+      failed_when: false
+
+    - name: Fall back to an explicit recreate when compose skipped it
+      ansible.builtin.shell:
+        cmd: "docker rm -f {{ caddy_container }} && docker compose up -d caddy"
+        chdir: "{{ caddy_path }}"
+      when: mount_check.rc != 0
+
+    - name: Verify the mount again
+      ansible.builtin.shell:
+        cmd: "docker exec {{ caddy_container }} ls {{ site_container_path }}"
+      register: mount_verify
+      changed_when: false
+      failed_when: mount_verify.rc != 0
+
+    - name: Report
+      ansible.builtin.debug:
+        msg:
+          - "mount:   {{ site_root }} -> {{ site_container_path }} (ro)"
+          - "visible: {{ mount_verify.stdout_lines | join(', ') }}"
+          - "caddy:   {{ 'recreated' if mount_added.changed else 'already mounted' }}"

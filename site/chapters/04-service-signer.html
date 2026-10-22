@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter 04 · Service signer · When the service signs, not the user</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --paper: #f5f5f5; --paper-2: #ececec; --ink: #2d3142; --muted: #4f5d75;
+      --accent: #bf4520; --rule: rgba(45,49,66,0.12);
+      --sans: 'Geist', system-ui, sans-serif; --serif: 'Instrument Serif', serif;
+      --mono: 'Geist Mono', ui-monospace, monospace;
+    }
+    html[data-theme="dark"] {
+      --paper: #12141a; --paper-2: #1b1f27; --ink: #e8e6e0; --muted: #98a0ae;
+      --accent: #e2663c; --rule: rgba(232,230,224,0.13);
+    }
+    .theme-toggle {
+      position: fixed; top: 1rem; right: 1rem; z-index: 30;
+      font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--muted);
+      background: var(--paper-2); border: 1px solid var(--rule);
+      border-radius: 999px; padding: 0.42rem 0.85rem; cursor: pointer;
+      transition: color 120ms ease, border-color 120ms ease;
+    }
+    .theme-toggle:hover { color: var(--ink); border-color: var(--muted); }
+    html[data-theme="dark"] .scroll [fill="#f5f5f5"] { fill: #12141a; }
+    html[data-theme="dark"] .scroll [fill="#ffffff"] { fill: #1b1f27; }
+    html[data-theme="dark"] .scroll [fill="#2d3142"] { fill: #e8e6e0; }
+    html[data-theme="dark"] .scroll [fill="#4f5d75"] { fill: #98a0ae; }
+    html[data-theme="dark"] .scroll [fill="#5a6580"] { fill: #aab2c0; }
+    html[data-theme="dark"] .scroll [fill="#bf4520"] { fill: #e2663c; }
+    html[data-theme="dark"] .scroll [fill="rgba(45,49,66,0.10)"] { fill: rgba(232,230,224,0.10); }
+    html[data-theme="dark"] .scroll [fill="rgba(79,93,117,0.03)"] { fill: rgba(232,230,224,0.045); }
+    html[data-theme="dark"] .scroll [fill="rgba(191,69,32,0.08)"] { fill: rgba(226,102,60,0.16); }
+    html[data-theme="dark"] .scroll [fill="rgba(191,69,32,0.06)"] { fill: rgba(226,102,60,0.12); }
+    html[data-theme="dark"] .scroll [stroke="#2d3142"] { stroke: #e8e6e0; }
+    html[data-theme="dark"] .scroll [stroke="#4f5d75"] { stroke: #98a0ae; }
+    html[data-theme="dark"] .scroll [stroke="#bf4520"] { stroke: #e2663c; }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.20)"] { stroke: rgba(232,230,224,0.26); }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.18)"] { stroke: rgba(232,230,224,0.24); }
+    html[data-theme="dark"] .scroll [stroke="rgba(45,49,66,0.12)"] { stroke: rgba(232,230,224,0.17); }
+    html[data-theme="dark"] .scroll svg { background: transparent; }
+    body { font-family: var(--sans); background: var(--paper); color: var(--ink);
+            padding: 4rem 2rem 8rem; line-height: 1.6; }
+    .frame { max-width: 1080px; margin: 0 auto; }
+    .eyebrow { font-family: var(--mono); font-size: 0.66rem; font-weight: 500;
+               letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted);
+               margin-bottom: 0.75rem; }
+    h1 { font-family: var(--serif); font-size: clamp(2rem, 4vw + 0.5rem, 3.1rem);
+          font-weight: 400; letter-spacing: -0.02em; line-height: 1.1; margin-bottom: 1.25rem; }
+    .standfirst { font-size: 1.05rem; color: var(--muted); max-width: 62ch; margin-bottom: 3rem; }
+    h2 { font-family: var(--serif); font-size: 1.55rem; font-weight: 400;
+          letter-spacing: -0.01em; margin: 3.25rem 0 0.9rem; }
+    h2 + p, p + p { margin-top: 0.9rem; }
+    p { max-width: 68ch; }
+    ul { max-width: 68ch; margin: 1rem 0 0 1.1rem; }
+    li { margin: 0.35rem 0; }
+    code { font-family: var(--mono); font-size: 0.86em; background: var(--paper-2);
+            padding: 0.1em 0.35em; border-radius: 3px; }
+    pre { font-family: var(--mono); font-size: 0.78rem; line-height: 1.65; background: var(--paper-2);
+           border: 1px solid var(--rule); border-radius: 6px; padding: 1.1rem 1.25rem;
+           overflow-x: auto; margin: 1.25rem 0; color: var(--ink); }
+    table { border-collapse: collapse; width: 100%; margin: 1.25rem 0; font-size: 0.88rem; }
+    th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+    th { font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.12em;
+          text-transform: uppercase; color: var(--muted); font-weight: 500; }
+    td code { font-size: 0.82em; }
+    .scroll { overflow-x: auto; }
+    svg { width: 100%; min-width: 960px; display: block; }
+    .caption { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.06em;
+                color: var(--muted); margin-top: 1rem; }
+    .callout { border-left: 2px solid var(--accent); padding: 0.35rem 0 0.35rem 1.1rem;
+                margin: 1.75rem 0; font-family: var(--serif); font-style: italic;
+                font-size: 1.05rem; color: var(--ink); max-width: 66ch; }
+    .backlink { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em;
+                 text-transform: uppercase; color: var(--muted); text-decoration: none; }
+    .footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
+    .next { font-size: 0.9rem; color: var(--muted); margin-top: 0.5rem; }
+    .next a { color: var(--ink); }
+  </style>
+<script>
+(function () {
+  var root = document.documentElement, KEY = 'qrcodes-theme', saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  root.dataset.theme = saved || 'dark';
+  function paint(btn) {
+    var next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    btn.textContent = next === 'light' ? 'Light' : 'Dark';
+    btn.setAttribute('aria-label', 'Switch to ' + next + ' mode');
+    btn.setAttribute('title', 'Switch to ' + next + ' mode');
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'theme-toggle';
+      btn.className = 'theme-toggle';
+      btn.type = 'button';
+      document.body.appendChild(btn);
+    }
+    paint(btn);
+    btn.addEventListener('click', function () {
+      root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      try { localStorage.setItem(KEY, root.dataset.theme); } catch (e) {}
+      paint(btn);
+    });
+  });
+})();
+</script>
+</head>
+<body>
+  <div class="frame">
+    <a class="backlink" href="../">&larr; Book map</a>
+    <div style="height:1.75rem"></div>
+    <p class="eyebrow">Chapter 04 · Tabs</p>
+    <h1>When the service signs, not the user</h1>
+    <p class="standfirst">The only tab with a server-side lifecycle: a generated request id, an automatic callback, a status endpoint, and a service identity holding the key.</p>
+    <div class="scroll">
+    <svg viewBox="0 0 1000 306" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="svc-title svc-desc">
+      <title id="svc-title">Service signer — the moving parts</title>
+      <desc id="svc-desc">A service identity signs an update for a target identity, with a generated request id, an automatic callback redirect, and a status endpoint the browser polls.</desc>
+      <defs>
+        <pattern id="svc-dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.9" fill="rgba(45,49,66,0.10)"/></pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f5f5"/>
+      <rect width="100%" height="100%" fill="url(#svc-dots)" opacity="0.55"/>
+      <rect x="40" y="66" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="185.0" y="93" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">generateRequestId()</text>
+      <rect x="356" y="66" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="501.0" y="93" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">ensureCallbackRedirect()</text>
+      <rect x="672" y="66" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="817.0" y="93" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">getidentity (target)</text>
+      <rect x="40" y="128" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="185.0" y="155" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">merge name + parent + contentmultimap</text>
+      <rect x="356" y="128" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="501.0" y="155" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">sign with service signer</text>
+      <rect x="672" y="128" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="817.0" y="155" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">callback → txid</text>
+      <rect x="40" y="190" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="185.0" y="217" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">status polling</text>
+      <rect x="356" y="190" width="290" height="44" rx="6" fill="#ffffff" stroke="#2d3142"/>
+      <text x="501.0" y="217" fill="#2d3142" font-size="11" font-family="'Geist',sans-serif" text-anchor="middle">QR of the signed request</text>
+      <text x="40" y="286" fill="#4f5d75" font-size="8.5" font-family="'Geist',sans-serif" font-style="italic">The wallet signs nothing here: it only authorises. The service holds the key.</text>
+    </svg>
+    </div>
+
+    <p class="caption">FIGURE 4.1 · Who does what in the service-signer flow.</p>
+
+    <h2>The inversion</h2>
+    <p>
+      Every other tab signs with a user identity that lives in the daemon's wallet. The service-signer tab
+      signs with a <em>service</em> identity configured on the server
+      (<code>SERVICE_SIGNER_IADDRESS</code> / <code>SERVICE_SIGNER_WIF</code>), targets someone else's
+      identity, and uses the QR only to get the user's authorisation.
+    </p>
+    <p>
+      That is the model used by provisioning and conversion services: the user authorises by scanning, the
+      service performs the update. The request is still a normal
+      <code>IdentityUpdateRequestOrdinalVDXFObject</code> — what differs is who signed it and how the answer
+      comes back.
+    </p>
+
+    <h2>Assembly, step by step</h2>
+    <pre>1. requestId = generateRequestId()                       // new i-address-ish id per request
+2. redirects = ensureCallbackRedirect(redirects, uri)    // adds type "1" -> /api/service-signer/callback
+3. { name, parent } = getidentity(targetIdentity)        // RPC, must resolve
+4. merged = { ...identityChanges, name, parent, contentmultimap }
+5. details = IdentityUpdateRequestDetails.fromCLIJson(merged, { requestid })
+6. request = buildGenericRequestFromDetails({ details, signed: true,
+              signingId: SERVICE_SIGNER_IADDRESS, redirects })
+7. signRequest(...)  with the service signing id
+8. QR / deeplink</pre>
+    <p>
+      Note step 3: the tab refuses to build a request if the target identity's name and parent cannot be
+      resolved. A partial identity that names an identity by something the chain cannot resolve is a request
+      the wallet would reject anyway.
+    </p>
+
+    <h2>The callback loop</h2>
+    <table>
+      <thead><tr><th>Endpoint</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /api/service-signer/callback?requestId=…</code></td><td>Wallet redirect target; renders a page that then polls status</td></tr>
+        <tr><td><code>POST /api/service-signer/callback?requestId=…</code></td><td>Programmatic callback carrying the wallet's response</td></tr>
+        <tr><td><code>GET /api/service-signer/status?requestId=…</code></td><td>Poll request state (pending / complete / error)</td></tr>
+      </tbody>
+    </table>
+    <p>
+      <code>parseIdentityUpdateResponse</code> extracts the <code>txid</code> from the wallet's response and
+      stores it against the request id. The UI polls status until it sees one. This is the only tab with a
+      server-side lifecycle — everything else is request/response in a single HTTP call.
+    </p>
+
+    <div class="callout">
+      If the service-signer QR works but the page never updates, the callback redirect is missing — and
+      because <code>buildResponseUris</code> drops unknown types silently, the failure looks like a wallet
+      problem rather than a form problem.
+    </div>
+
+    <h2>keydefiner.ts</h2>
+    <p>
+      A 22-line CLI helper: given a VDXF key URI, it constructs a <code>DefinedKey</code>, prints its
+      i-address, and emits the identity-update JSON fragment that registers it under
+      <code>DATA_TYPE_DEFINEDKEY</code>. It is how you create the key you will then write into a content
+      multimap in the update tab.
+    </p>
+
+    <h2>Reading the code</h2>
+    <pre>src/routes/requests/serviceSigner.ts
+├── generateServiceSignerQr     # assembly + QR
+├── serviceSignerCallback       # POST from wallet
+├── serviceSignerCallbackRedirect # GET redirect + page
+├── serviceSignerStatus         # polling
+└── fetchTargetIdentityInfo     # getidentity, name + parent
+src/keydefiner.ts               # VDXF key → i-address + update JSON</pre>
+
+    <div class="footer">
+      <a class="backlink" href="../">&larr; Book map</a>
+      <p class="next">Next — <a href="05-authentication.html">Chapter 05 · Authentication</a></p>
+    </div>
+  </div>
+</body>
+</html>

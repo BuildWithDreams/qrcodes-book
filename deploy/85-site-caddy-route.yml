@@ -1,0 +1,74 @@
+# Playbook: 85-site-caddy-route.yml
+# Purpose: Add/update the Caddy HTTPS routes for every name serving the static
+#          site, plus 301s for alternate names. Remove-then-add per domain for
+#          full idempotency; validate before reload.
+#
+# NOTE: the removal marker MUST contain {mark}. Without it Ansible uses the
+# literal string as both the begin and end marker, matches nothing, reports ok,
+# and the following insert duplicates the site block -> "ambiguous site
+# definition" on validate.
+#
+# Run with: ansible-playbook -i deploy/inventory.ini deploy/85-site-caddy-route.yml
+---
+- name: Add Caddy routes for the qrcodes-book site
+  hosts: production
+  become: false
+  vars_files:
+    - group_vars/production.yml
+
+  tasks:
+    - name: Remove stale route blocks for every managed name
+      ansible.builtin.blockinfile:
+        path: "{{ caddy_path }}/Caddyfile"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK -- {{ item }}"
+        state: absent
+      loop: "{{ site_domains + site_redirects }}"
+
+    - name: Append file_server route for each serving domain
+      ansible.builtin.blockinfile:
+        path: "{{ caddy_path }}/Caddyfile"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK -- {{ item }}"
+        content: |
+          {{ item }} {
+            root * {{ site_container_path }}
+            file_server
+            tls {{ caddy_letsencrypt_email }}
+            log {
+              output file /data/access.log
+            }
+          }
+      loop: "{{ site_domains }}"
+      register: caddyfile_updated
+
+    - name: Append 301 redirect for alternate names
+      ansible.builtin.blockinfile:
+        path: "{{ caddy_path }}/Caddyfile"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK -- {{ item }}"
+        content: |
+          {{ item }} {
+            redir {{ site_redirect_target }}{uri} 301
+            tls {{ caddy_letsencrypt_email }}
+          }
+      loop: "{{ site_redirects }}"
+      register: caddyfile_redirects
+
+    - name: Validate the Caddyfile
+      ansible.builtin.shell:
+        cmd: "docker exec {{ caddy_container }} caddy validate --config /config/caddy/Caddyfile 2>&1"
+      register: caddy_validate
+      changed_when: false
+      failed_when: caddy_validate.rc != 0
+
+    - name: Reload Caddy
+      ansible.builtin.shell:
+        cmd: "docker exec {{ caddy_container }} caddy reload --config /config/caddy/Caddyfile 2>&1"
+      register: caddy_reload
+      changed_when: "'success' in caddy_reload.stdout"
+      failed_when: caddy_reload.rc != 0
+
+    - name: Report
+      ansible.builtin.debug:
+        msg:
+          - "serving:   {{ site_domains | join(', ') }} -> {{ site_container_path }}"
+          - "config:    {{ 'updated' if (caddyfile_updated.changed or caddyfile_redirects.changed) else 'unchanged' }}"
+          - "reload:    {{ caddy_reload.stdout | default('') | trim | truncate(120) }}"
