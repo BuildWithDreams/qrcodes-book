@@ -17,6 +17,15 @@
     - group_vars/production.yml
 
   tasks:
+    - name: Require the Let's Encrypt contact before touching the Caddyfile
+      ansible.builtin.assert:
+        that:
+          - caddy_letsencrypt_email | length > 0
+        fail_msg: >-
+          caddy_letsencrypt_email is empty. Export CADDY_LE_EMAIL (it is not
+          committed) or pass -e caddy_letsencrypt_email=you@example.com —
+          Caddy's `tls` directive needs a contact for expiry notices.
+
     - name: Remove stale route blocks for every managed name
       ansible.builtin.blockinfile:
         path: "{{ caddy_path }}/Caddyfile"

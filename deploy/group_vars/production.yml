@@ -23,4 +23,7 @@ site_redirect_target: ""
 # Caddy
 caddy_path: "/home/{{ ansible_user }}/caddy"
 caddy_container: "mains_blue_caddy-caddy-1"
-caddy_letsencrypt_email: "hermesreport@verus.trading"
+# Let's Encrypt contact — deliberately not committed. Export CADDY_LE_EMAIL in
+# your shell (or pass -e caddy_letsencrypt_email=you@example.com) before running
+# the route playbook; Caddy only uses it for expiry notices.
+caddy_letsencrypt_email: "{{ lookup('env', 'CADDY_LE_EMAIL') | default('', true) }}"

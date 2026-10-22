@@ -58,8 +58,13 @@ content edits need **no** playbook and **no** Caddy reload:
 
 ## Publishing (infra change)
 
-Only when the mount or the domain list changes. 84 recreates the Caddy container
-(~3 s downtime for every bwd site), so it is first-time-only:
+Only when the mount or the domain list changes. Export the Let's Encrypt contact
+first — it is not committed (the playbooks read `CADDY_LE_EMAIL`):
+
+    export CADDY_LE_EMAIL=you@example.com
+
+84 recreates the Caddy container (~3 s downtime for every bwd site), so it is
+first-time-only:
 
     cd ~/qrcodes-book
     ansible-playbook -i deploy/inventory.ini deploy/84-site-mount.yml
